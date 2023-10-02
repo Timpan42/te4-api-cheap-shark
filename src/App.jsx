@@ -6,64 +6,76 @@ import Spinner from './componets/Spinner'
 
 function App() {
 
-  const [stores, setStores] = useState([])
-  const [search, setSearch] = useState()
+  const [stores, setStores] = useState(() => {
+    return JSON.parse(localStorage.getItem('stores')) || []
+  })
+  const [hasStores, setHasStores] = useState(() => {
+    return JSON.parse(localStorage.getItem('hasStores')) || []
+  })
+  const [search, setSearch] = useState([])
   const [searchResult, setSearchResult] = useState([])
   const [pricing, setPricing] = useState([])
 
+  localStorage.setItem('stores', JSON.stringify(stores))
+  localStorage.setItem('hasStores', JSON.stringify(hasStores))
 
-  function callFunction() {
-
-    const searchValue = document.getElementById('newSearch').value
-
-    setSearch(searchValue)
-
-    fetchStores()
-
-    // gets the stores name and ip
-    function fetchStores() {
+  // gets the stores name and id (done)
+  async function fetchStores() {
+    if (hasStores === 1) {
+      console.log("has stores stored in localStorage")
+      return
+    } else {
       console.log("get Stores")
-      fetch(`https://www.cheapshark.com/api/1.0/stores`)
+      await fetch(`https://www.cheapshark.com/api/1.0/stores`)
         .then(res => res.json())
         .then(result => {
           console.log(result)
           setStores(result)
-        }).catch(err => {
-          console.log(err)
-        })
-    }
-
-    fetchSearch()
-
-    // get the search item 
-    function fetchSearch() {
-      console.log("get Search")
-      console.log(search)
-      fetch(`https://www.cheapshark.com/api/1.0/games?title=${search}`)
-        .then(res => res.json())
-        .then(result => {
-          console.log(result)
-          setSearchResult(result)
-        }).catch(err => {
-          console.log(err)
-        })
-    }
-
-    fetchPrices()
-
-    // gets the pricing 
-    function fetchPrices() {
-      console.log("get Prices")
-      fetch(`https://www.cheapshark.com/api/1.0/games?id=${searchResult[0].gameID}`)
-        .then(res => res.json())
-        .then(result => {
-          console.log(result)
-          setPricing(result)
+          setHasStores(1)
         }).catch(err => {
           console.log(err)
         })
     }
   }
+
+
+  // get the search item 
+  async function fetchSearch() {
+    const searchValue = document.getElementById('newSearch').value
+    await fetchStores()
+    console.log("get Search")
+    await fetch(`https://www.cheapshark.com/api/1.0/games?title=${searchValue}`)
+      .then(res => res.json())
+      .then(result => {
+        console.log(result)
+        setSearchResult(result)
+      }).catch(err => {
+        console.log(err)
+      })
+  }
+
+  // gets the pricing 
+  async function fetchPrices() {
+    await fetchSearch()
+    console.log("get Prices")
+    const result = searchResult[0].gameID
+    console.log(result)
+    await fetch(`https://www.cheapshark.com/api/1.0/games?id=${result}`)
+      .then(res => res.json())
+      .then(result => {
+        console.log(result)
+        setPricing(result)
+      }).catch(err => {
+        console.log(err)
+      })
+  }
+
+  function callFunction() {
+    fetchStores()
+    fetchSearch()
+    fetchPrices()
+  }
+
 
 
   return (
@@ -81,7 +93,7 @@ function App() {
                 Game name: {pricing.info.title}
               </p>
               <p>
-                Game price: {pricing.deals[0].price}
+                Game price: {pricing.deals[0].price}$
               </p>
               <p>
                 Game price: {stores[pricing.deals[0].storeID].storeName}
